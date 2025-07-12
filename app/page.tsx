@@ -1,10 +1,11 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Grid, List } from "lucide-react"
+import { Grid, List, ExternalLink } from "lucide-react"
 import { ProjectDetailModal } from "@/components/project-detail-modal"
 import { loadProjects } from "@/lib/storage"
 import type { Project } from "@/lib/types"
@@ -17,7 +18,12 @@ const statusConfig = {
   completed: { label: "已完成", color: "bg-green-200 text-green-800", bgColor: "bg-green-50" },
 }
 
-// 生成初始项目数据的函数（如果localStorage中没有数据）
+// 已完成的应用映射
+const completedAppRoutes: Record<number, string> = {
+  9: '/apps/calculator', // 在线计算器
+}
+
+// 生成初始项目数据的函数
 const generateInitialProjects = (): Project[] => {
   const projectTitles = [
     "个人导航网站",
@@ -131,17 +137,16 @@ const generateInitialProjects = (): Project[] => {
     const id = index + 1
     let status: Project["status"] = "planned"
 
-    if (id <= 5) status = "completed"
-    else if (id === 6) status = "developing"
-    else if (id === 7 || id === 8) status = "planning"
+    // 计算器已完成
+    if (id === 9) status = "completed"
 
     return {
       id,
       title: projectTitles[index] || `应用项目 ${id}`,
       description: `这是第${id}个应用项目的描述`,
       status,
-      link: status === "completed" ? `https://example.com/app-${id}` : undefined,
-      github: status === "completed" ? `https://github.com/example/app-${id}` : undefined,
+      link: status === "completed" && completedAppRoutes[id] ? completedAppRoutes[id] : undefined,
+      github: status === "completed" ? `https://github.com/leeloveloli/100apps` : undefined,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       version: status === "completed" ? "1.0.0" : undefined,
@@ -230,26 +235,43 @@ export default function HundredApps() {
         {viewMode === "grid" ? (
           /* Grid View */
           <div className="grid grid-cols-10 gap-2 max-w-4xl mx-auto">
-            {projects.map((project) => (
-              <div
-                key={project.id}
-                className={`
-                  aspect-square rounded-lg border-2 border-gray-200 cursor-pointer
-                  transition-all duration-200 hover:scale-105 hover:shadow-md
-                  flex flex-col items-center justify-center text-center p-1
-                  ${statusConfig[project.status].bgColor}
-                  ${project.status === "completed" ? "border-green-300" : ""}
-                  ${project.status === "developing" ? "border-blue-300" : ""}
-                  ${project.status === "planning" ? "border-yellow-300" : ""}
-                `}
-                onClick={() => setSelectedProject(project)}
-              >
-                <div className="text-xs font-bold text-gray-700 mb-1">{project.id}</div>
-                <div className="text-[10px] leading-tight text-gray-600 line-clamp-2">
-                  {project.status === "planned" ? "待规划" : project.title}
-                </div>
-              </div>
-            ))}
+            {projects.map((project) => {
+              const ProjectWrapper = project.link && project.status === "completed" 
+                ? ({ children }: { children: React.ReactNode }) => (
+                    <Link href={project.link!} className="block">
+                      {children}
+                    </Link>
+                  )
+                : ({ children }: { children: React.ReactNode }) => (
+                    <div onClick={() => setSelectedProject(project)}>
+                      {children}
+                    </div>
+                  )
+
+              return (
+                <ProjectWrapper key={project.id}>
+                  <div
+                    className={`
+                      aspect-square rounded-lg border-2 border-gray-200 cursor-pointer
+                      transition-all duration-200 hover:scale-105 hover:shadow-md
+                      flex flex-col items-center justify-center text-center p-1
+                      ${statusConfig[project.status].bgColor}
+                      ${project.status === "completed" ? "border-green-300" : ""}
+                      ${project.status === "developing" ? "border-blue-300" : ""}
+                      ${project.status === "planning" ? "border-yellow-300" : ""}
+                    `}
+                  >
+                    <div className="text-xs font-bold text-gray-700 mb-1">{project.id}</div>
+                    <div className="text-[10px] leading-tight text-gray-600 line-clamp-2">
+                      {project.status === "planned" ? "待规划" : project.title}
+                    </div>
+                    {project.link && project.status === "completed" && (
+                      <ExternalLink className="w-3 h-3 text-green-600 mt-1" />
+                    )}
+                  </div>
+                </ProjectWrapper>
+              )
+            })}
           </div>
         ) : (
           /* List View */
@@ -267,7 +289,14 @@ export default function HundredApps() {
                         {project.id}
                       </div>
                       <div>
-                        <h3 className="font-medium">{project.title}</h3>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-medium">{project.title}</h3>
+                          {project.link && project.status === "completed" && (
+                            <Link href={project.link} className="text-blue-600 hover:text-blue-800">
+                              <ExternalLink className="w-4 h-4" />
+                            </Link>
+                          )}
+                        </div>
                         <p className="text-sm text-gray-600">{project.description}</p>
                         {project.version && <p className="text-xs text-gray-500 mt-1">版本: v{project.version}</p>}
                       </div>

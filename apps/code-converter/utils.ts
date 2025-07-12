@@ -160,7 +160,7 @@ export function convertFromJSON(jsonStr: string, targetFormat: DataFormat): Conv
       case 'csv':
         return { success: true, data: jsonToCsv(data) }
       case 'base64':
-        return { success: true, data: btoa(unescape(encodeURIComponent(jsonStr))) }
+        return { success: true, data: encodeBase64(jsonStr) }
       case 'markdown':
         return { success: true, data: jsonToMarkdown(data) }
       case 'html':
@@ -192,7 +192,7 @@ export function convertFromYAML(yamlStr: string, targetFormat: DataFormat): Conv
       case 'csv':
         return { success: true, data: jsonToCsv(data) }
       case 'base64':
-        return { success: true, data: btoa(unescape(encodeURIComponent(yamlStr))) }
+        return { success: true, data: encodeBase64(yamlStr) }
       case 'markdown':
         return { success: true, data: jsonToMarkdown(data) }
       case 'html':
@@ -224,7 +224,7 @@ export function convertFromXML(xmlStr: string, targetFormat: DataFormat): Conver
       case 'csv':
         return { success: true, data: jsonToCsv(data) }
       case 'base64':
-        return { success: true, data: btoa(unescape(encodeURIComponent(xmlStr))) }
+        return { success: true, data: encodeBase64(xmlStr) }
       case 'markdown':
         return { success: true, data: jsonToMarkdown(data) }
       case 'html':
@@ -256,7 +256,7 @@ export function convertFromCSV(csvStr: string, targetFormat: DataFormat): Conver
       case 'xml':
         return { success: true, data: jsonToXml(data) }
       case 'base64':
-        return { success: true, data: btoa(unescape(encodeURIComponent(csvStr))) }
+        return { success: true, data: encodeBase64(csvStr) }
       case 'markdown':
         return { success: true, data: jsonToMarkdown(data) }
       case 'html':
@@ -278,18 +278,42 @@ export function convertFromCSV(csvStr: string, targetFormat: DataFormat): Conver
 // Base64 转换
 export function convertFromBase64(base64Str: string, targetFormat: DataFormat): ConversionResult {
   try {
-    const decoded = decodeURIComponent(escape(atob(base64Str)))
+    let decoded: string
+    
+    // 兼容性检查
+    if (typeof atob !== 'undefined') {
+      decoded = decodeURIComponent(escape(atob(base64Str)))
+    } else {
+      // Node.js环境
+      decoded = Buffer.from(base64Str, 'base64').toString('utf-8')
+    }
     
     switch (targetFormat) {
       case 'json':
-        const jsonData = JSON.parse(decoded)
-        return { success: true, data: JSON.stringify(jsonData, null, 2) }
+        try {
+          const jsonData = JSON.parse(decoded)
+          return { success: true, data: JSON.stringify(jsonData, null, 2) }
+        } catch {
+          return { success: true, data: decoded }
+        }
       case 'yaml':
-        return convertFromJSON(decoded, 'yaml')
+        try {
+          return convertFromJSON(decoded, 'yaml')
+        } catch {
+          return { success: true, data: decoded }
+        }
       case 'xml':
-        return convertFromJSON(decoded, 'xml')
+        try {
+          return convertFromJSON(decoded, 'xml')
+        } catch {
+          return { success: true, data: decoded }
+        }
       case 'csv':
-        return convertFromJSON(decoded, 'csv')
+        try {
+          return convertFromJSON(decoded, 'csv')
+        } catch {
+          return { success: true, data: decoded }
+        }
       case 'markdown':
         return { success: true, data: decoded }
       case 'html':
@@ -319,7 +343,7 @@ export function convertFromMarkdown(markdownStr: string, targetFormat: DataForma
       case 'rst':
         return { success: true, data: markdownToRst(markdownStr) }
       case 'base64':
-        return { success: true, data: btoa(unescape(encodeURIComponent(markdownStr))) }
+        return { success: true, data: encodeBase64(markdownStr) }
       case 'markdown':
         return { success: true, data: markdownStr }
       case 'json':
@@ -346,7 +370,7 @@ export function convertFromHTML(htmlStr: string, targetFormat: DataFormat): Conv
       case 'rst':
         return { success: true, data: htmlToRst(htmlStr) }
       case 'base64':
-        return { success: true, data: btoa(unescape(encodeURIComponent(htmlStr))) }
+        return { success: true, data: encodeBase64(htmlStr) }
       case 'html':
         return { success: true, data: htmlStr }
       case 'json':
@@ -373,7 +397,7 @@ export function convertFromLatex(latexStr: string, targetFormat: DataFormat): Co
       case 'rst':
         return { success: true, data: latexToRst(latexStr) }
       case 'base64':
-        return { success: true, data: btoa(unescape(encodeURIComponent(latexStr))) }
+        return { success: true, data: encodeBase64(latexStr) }
       case 'latex':
         return { success: true, data: latexStr }
       case 'json':
@@ -400,7 +424,7 @@ export function convertFromRst(rstStr: string, targetFormat: DataFormat): Conver
       case 'latex':
         return { success: true, data: rstToLatex(rstStr) }
       case 'base64':
-        return { success: true, data: btoa(unescape(encodeURIComponent(rstStr))) }
+        return { success: true, data: encodeBase64(rstStr) }
       case 'rst':
         return { success: true, data: rstStr }
       case 'json':
@@ -454,6 +478,16 @@ function jsonToYaml(obj: any): string {
   return stringify(obj)
 }
 
+// Base64编码函数（兼容浏览器和Node.js）
+function encodeBase64(text: string): string {
+  if (typeof btoa !== 'undefined') {
+    return btoa(unescape(encodeURIComponent(text)))
+  } else {
+    // Node.js环境
+    return Buffer.from(text, 'utf-8').toString('base64')
+  }
+}
+
 function jsonToXml(obj: any, rootName = 'root'): string {
   function toXml(obj: any, name: string): string {
     if (Array.isArray(obj)) {
@@ -497,22 +531,37 @@ function parseYaml(yamlStr: string): any {
   // 简单的YAML解析实现（生产环境建议使用js-yaml库）
   const lines = yamlStr.split('\n').filter(line => line.trim())
   const result: any = {}
+  let currentKey = ''
   
   for (const line of lines) {
-    if (line.includes(':')) {
-      const [key, ...valueParts] = line.split(':')
+    const trimmedLine = line.trim()
+    
+    if (trimmedLine.startsWith('- ')) {
+      // 数组项
+      const value = trimmedLine.slice(2).trim()
+      if (currentKey) {
+        if (!result[currentKey]) result[currentKey] = []
+        result[currentKey].push(value)
+      }
+    } else if (trimmedLine.includes(':')) {
+      const [key, ...valueParts] = trimmedLine.split(':')
       const value = valueParts.join(':').trim()
       const cleanKey = key.trim()
       
-      if (value.startsWith('[') && value.endsWith(']')) {
-        result[cleanKey] = value.slice(1, -1).split(',').map(v => v.trim())
-      } else if (value.startsWith('-')) {
-        if (!result[cleanKey]) result[cleanKey] = []
-        result[cleanKey].push(value.slice(1).trim())
+      if (value === '') {
+        // 可能是数组或对象的开始
+        currentKey = cleanKey
+        result[cleanKey] = []
+      } else if (value.startsWith('[') && value.endsWith(']')) {
+        // 内联数组
+        result[cleanKey] = value.slice(1, -1).split(',').map(v => v.trim().replace(/"/g, ''))
+        currentKey = ''
       } else if (!isNaN(Number(value))) {
         result[cleanKey] = Number(value)
+        currentKey = ''
       } else {
-        result[cleanKey] = value
+        result[cleanKey] = value.replace(/"/g, '')
+        currentKey = ''
       }
     }
   }
@@ -522,19 +571,24 @@ function parseYaml(yamlStr: string): any {
 
 function parseXml(xmlStr: string): any {
   // 简化的XML解析（生产环境建议使用DOMParser）
+  if (typeof DOMParser === 'undefined') {
+    // Node.js环境的简化解析
+    return parseXmlSimple(xmlStr)
+  }
+  
   const parser = new DOMParser()
   const doc = parser.parseFromString(xmlStr, 'text/xml')
   
   function xmlToJson(node: any): any {
     const result: any = {}
     
-    if (node.nodeType === Node.TEXT_NODE) {
+    if (node.nodeType === 3) { // TEXT_NODE
       return node.textContent
     }
     
     if (node.childNodes && node.childNodes.length > 0) {
       for (const child of node.childNodes) {
-        if (child.nodeType === Node.ELEMENT_NODE) {
+        if (child.nodeType === 1) { // ELEMENT_NODE
           const nodeName = child.nodeName
           const nodeValue = xmlToJson(child)
           
@@ -546,7 +600,7 @@ function parseXml(xmlStr: string): any {
           } else {
             result[nodeName] = nodeValue
           }
-        } else if (child.nodeType === Node.TEXT_NODE && child.textContent?.trim()) {
+        } else if (child.nodeType === 3 && child.textContent?.trim()) { // TEXT_NODE
           return child.textContent.trim()
         }
       }
@@ -556,6 +610,27 @@ function parseXml(xmlStr: string): any {
   }
   
   return xmlToJson(doc.documentElement)
+}
+
+// 简化的XML解析函数（用于Node.js环境）
+function parseXmlSimple(xmlStr: string): any {
+  const result: any = {}
+  
+  // 移除XML声明
+  const cleanXml = xmlStr.replace(/<\?xml[^>]*\?>/g, '').trim()
+  
+  // 简单的标签匹配
+  const tagRegex = /<(\w+)>([^<]*)<\/\1>/g
+  let match
+  
+  while ((match = tagRegex.exec(cleanXml)) !== null) {
+    const [, tagName, content] = match
+    if (content.trim()) {
+      result[tagName] = content.trim()
+    }
+  }
+  
+  return result
 }
 
 function parseCsv(csvStr: string): any[] {

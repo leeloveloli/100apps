@@ -16,6 +16,29 @@ export default function CodeConverter() {
   const [error, setError] = useState('')
   const [isConverting, setIsConverting] = useState(false)
 
+  // 格式分类定义
+  const formatCategories = {
+    data: ['json', 'yaml', 'xml', 'csv', 'base64'],
+    markup: ['markdown', 'html', 'latex', 'rst'],
+    programming: ['javascript', 'typescript', 'python', 'go', 'java', 'csharp', 'php', 'rust', 'swift', 'cpp']
+  }
+
+  // 获取格式所属分类
+  const getFormatCategory = (format: DataFormat) => {
+    for (const [category, formats] of Object.entries(formatCategories)) {
+      if (formats.includes(format)) {
+        return category
+      }
+    }
+    return 'data'
+  }
+
+  // 获取可用的目标格式（同一分类内的格式）
+  const getAvailableTargetFormats = () => {
+    const sourceCategory = getFormatCategory(sourceFormat)
+    return formatCategories[sourceCategory as keyof typeof formatCategories] || formatCategories.data
+  }
+
   // 实时转换
   const handleConvert = useCallback(() => {
     if (!inputText.trim()) {
@@ -55,6 +78,16 @@ export default function CodeConverter() {
     
     return () => clearTimeout(timer)
   }, [inputText, sourceFormat, targetFormat, handleConvert])
+
+  // 源格式变化时，自动调整目标格式到同一分类
+  useEffect(() => {
+    const availableTargets = getAvailableTargetFormats()
+    if (!availableTargets.includes(targetFormat)) {
+      // 如果当前目标格式不在同一分类中，选择第一个可用的格式（排除源格式本身）
+      const newTarget = availableTargets.find(f => f !== sourceFormat) || availableTargets[0]
+      setTargetFormat(newTarget as DataFormat)
+    }
+  }, [sourceFormat, targetFormat, getAvailableTargetFormats])
 
   // 交换格式
   const swapFormats = () => {
@@ -113,8 +146,11 @@ export default function CodeConverter() {
           <p className="text-xl text-gray-600 mb-2">
             支持标记语言：Markdown • HTML • LaTeX • reStructuredText
           </p>
+          <p className="text-xl text-gray-600 mb-2">
+            支持编程语言：JavaScript • TypeScript • Python • Go • Java • C# • PHP • Rust • Swift • C++
+          </p>
           <p className="text-gray-500">
-            开发者必备工具，实时转换预览，一键复制结果
+            开发者必备工具，分类内互转，实时预览，一键复制
           </p>
         </div>
 
@@ -136,13 +172,19 @@ export default function CodeConverter() {
                   </SelectTrigger>
                   <SelectContent>
                     <div className="px-2 py-1 text-xs font-semibold text-gray-500 border-b">数据格式</div>
-                    {formats.filter(f => ['json', 'yaml', 'xml', 'csv', 'base64'].includes(f.id)).map((format) => (
+                    {formats.filter(f => formatCategories.data.includes(f.id)).map((format) => (
                       <SelectItem key={format.id} value={format.id}>
                         {format.name}
                       </SelectItem>
                     ))}
                     <div className="px-2 py-1 text-xs font-semibold text-gray-500 border-b mt-1">标记语言</div>
-                    {formats.filter(f => ['markdown', 'html', 'latex', 'rst'].includes(f.id)).map((format) => (
+                    {formats.filter(f => formatCategories.markup.includes(f.id)).map((format) => (
+                      <SelectItem key={format.id} value={format.id}>
+                        {format.name}
+                      </SelectItem>
+                    ))}
+                    <div className="px-2 py-1 text-xs font-semibold text-gray-500 border-b mt-1">编程语言</div>
+                    {formats.filter(f => formatCategories.programming.includes(f.id)).map((format) => (
                       <SelectItem key={format.id} value={format.id}>
                         {format.name}
                       </SelectItem>
@@ -168,18 +210,28 @@ export default function CodeConverter() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <div className="px-2 py-1 text-xs font-semibold text-gray-500 border-b">数据格式</div>
-                    {formats.filter(f => ['json', 'yaml', 'xml', 'csv', 'base64'].includes(f.id)).map((format) => (
-                      <SelectItem key={format.id} value={format.id}>
-                        {format.name}
-                      </SelectItem>
-                    ))}
-                    <div className="px-2 py-1 text-xs font-semibold text-gray-500 border-b mt-1">标记语言</div>
-                    {formats.filter(f => ['markdown', 'html', 'latex', 'rst'].includes(f.id)).map((format) => (
-                      <SelectItem key={format.id} value={format.id}>
-                        {format.name}
-                      </SelectItem>
-                    ))}
+                    {(() => {
+                      const availableFormats = getAvailableTargetFormats()
+                      const category = getFormatCategory(sourceFormat)
+                      const categoryNames = {
+                        data: '数据格式',
+                        markup: '标记语言',
+                        programming: '编程语言'
+                      }
+                      
+                      return (
+                        <>
+                          <div className="px-2 py-1 text-xs font-semibold text-gray-500 border-b">
+                            {categoryNames[category as keyof typeof categoryNames]}
+                          </div>
+                          {formats.filter(f => availableFormats.includes(f.id)).map((format) => (
+                            <SelectItem key={format.id} value={format.id}>
+                              {format.name}
+                            </SelectItem>
+                          ))}
+                        </>
+                      )
+                    })()}
                   </SelectContent>
                 </Select>
               </div>
@@ -281,7 +333,7 @@ export default function CodeConverter() {
               <div>
                 <h3 className="text-lg font-semibold mb-3 text-blue-600">💾 数据格式</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {formats.filter(f => ['json', 'yaml', 'xml', 'csv', 'base64'].includes(f.id)).map((format) => (
+                  {formats.filter(f => formatCategories.data.includes(f.id)).map((format) => (
                     <div key={format.id} className="p-4 border rounded-lg bg-blue-50 border-blue-200">
                       <h4 className="font-semibold text-lg mb-2">{format.name}</h4>
                       <p className="text-gray-600 text-sm mb-3">{format.description}</p>
@@ -298,13 +350,30 @@ export default function CodeConverter() {
               <div>
                 <h3 className="text-lg font-semibold mb-3 text-purple-600">📝 标记语言</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {formats.filter(f => ['markdown', 'html', 'latex', 'rst'].includes(f.id)).map((format) => (
+                  {formats.filter(f => formatCategories.markup.includes(f.id)).map((format) => (
                     <div key={format.id} className="p-4 border rounded-lg bg-purple-50 border-purple-200">
                       <h4 className="font-semibold text-lg mb-2">{format.name}</h4>
                       <p className="text-gray-600 text-sm mb-3">{format.description}</p>
                       <div className="text-xs bg-white p-2 rounded font-mono overflow-x-auto">
                         {format.example.slice(0, 150)}
                         {format.example.length > 150 && '...'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 编程语言 */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3 text-green-600">💻 编程语言</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {formats.filter(f => formatCategories.programming.includes(f.id)).map((format) => (
+                    <div key={format.id} className="p-4 border rounded-lg bg-green-50 border-green-200">
+                      <h4 className="font-semibold text-lg mb-2">{format.name}</h4>
+                      <p className="text-gray-600 text-sm mb-3">{format.description}</p>
+                      <div className="text-xs bg-white p-2 rounded font-mono overflow-x-auto">
+                        {format.example.slice(0, 120)}
+                        {format.example.length > 120 && '...'}
                       </div>
                     </div>
                   ))}
@@ -320,15 +389,16 @@ export default function CodeConverter() {
             <CardTitle>📖 使用说明</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-sm text-gray-600">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-sm text-gray-600">
               <div>
                 <h4 className="font-semibold mb-2">基本操作：</h4>
                 <ul className="space-y-1">
                   <li>• 选择源格式和目标格式</li>
-                  <li>• 在左侧输入框粘贴或输入数据</li>
+                  <li>• 在左侧输入框粘贴或输入代码</li>
                   <li>• 系统会自动实时转换并显示结果</li>
                   <li>• 点击"复制"按钮复制转换结果</li>
                   <li>• 点击"示例"查看格式示例</li>
+                  <li>• 只能在同一分类内转换</li>
                 </ul>
               </div>
               <div>
@@ -349,6 +419,16 @@ export default function CodeConverter() {
                   <li>• 保留基本格式和结构</li>
                   <li>• 支持标题、列表、链接转换</li>
                   <li>• 文档格式无缝切换</li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-semibold mb-2">编程语言转换：</h4>
+                <ul className="space-y-1">
+                  <li>• JavaScript ↔ TypeScript ↔ Python</li>
+                  <li>• Go ↔ Java ↔ C# ↔ PHP</li>
+                  <li>• Rust ↔ Swift ↔ C++</li>
+                  <li>• 保留代码逻辑和结构</li>
+                  <li>• 智能语法适配转换</li>
                 </ul>
               </div>
             </div>

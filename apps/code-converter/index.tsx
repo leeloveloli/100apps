@@ -108,7 +108,10 @@ export default function CodeConverter() {
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-800 mb-4">🔄 代码转换器</h1>
           <p className="text-xl text-gray-600 mb-2">
-            支持 JSON • YAML • XML • CSV • Base64 格式互转
+            支持数据格式：JSON • YAML • XML • CSV • Base64
+          </p>
+          <p className="text-xl text-gray-600 mb-2">
+            支持标记语言：Markdown • HTML • LaTeX • reStructuredText
           </p>
           <p className="text-gray-500">
             开发者必备工具，实时转换预览，一键复制结果
@@ -128,11 +131,18 @@ export default function CodeConverter() {
               <div className="flex items-center gap-2">
                 <label className="text-sm font-medium">从:</label>
                 <Select value={sourceFormat} onValueChange={(value) => setSourceFormat(value as DataFormat)}>
-                  <SelectTrigger className="w-32">
+                  <SelectTrigger className="w-36">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {formats.map((format) => (
+                    <div className="px-2 py-1 text-xs font-semibold text-gray-500 border-b">数据格式</div>
+                    {formats.filter(f => ['json', 'yaml', 'xml', 'csv', 'base64'].includes(f.id)).map((format) => (
+                      <SelectItem key={format.id} value={format.id}>
+                        {format.name}
+                      </SelectItem>
+                    ))}
+                    <div className="px-2 py-1 text-xs font-semibold text-gray-500 border-b mt-1">标记语言</div>
+                    {formats.filter(f => ['markdown', 'html', 'latex', 'rst'].includes(f.id)).map((format) => (
                       <SelectItem key={format.id} value={format.id}>
                         {format.name}
                       </SelectItem>
@@ -154,11 +164,18 @@ export default function CodeConverter() {
               <div className="flex items-center gap-2">
                 <label className="text-sm font-medium">到:</label>
                 <Select value={targetFormat} onValueChange={(value) => setTargetFormat(value as DataFormat)}>
-                  <SelectTrigger className="w-32">
+                  <SelectTrigger className="w-36">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {formats.map((format) => (
+                    <div className="px-2 py-1 text-xs font-semibold text-gray-500 border-b">数据格式</div>
+                    {formats.filter(f => ['json', 'yaml', 'xml', 'csv', 'base64'].includes(f.id)).map((format) => (
+                      <SelectItem key={format.id} value={format.id}>
+                        {format.name}
+                      </SelectItem>
+                    ))}
+                    <div className="px-2 py-1 text-xs font-semibold text-gray-500 border-b mt-1">标记语言</div>
+                    {formats.filter(f => ['markdown', 'html', 'latex', 'rst'].includes(f.id)).map((format) => (
                       <SelectItem key={format.id} value={format.id}>
                         {format.name}
                       </SelectItem>
@@ -259,17 +276,40 @@ export default function CodeConverter() {
             <CardTitle>📊 支持的格式</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {formats.map((format) => (
-                <div key={format.id} className="p-4 border rounded-lg bg-white">
-                  <h3 className="font-semibold text-lg mb-2">{format.name}</h3>
-                  <p className="text-gray-600 text-sm mb-3">{format.description}</p>
-                  <div className="text-xs bg-gray-100 p-2 rounded font-mono overflow-x-auto">
-                    {format.example.slice(0, 100)}
-                    {format.example.length > 100 && '...'}
-                  </div>
+            <div className="space-y-6">
+              {/* 数据格式 */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3 text-blue-600">💾 数据格式</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {formats.filter(f => ['json', 'yaml', 'xml', 'csv', 'base64'].includes(f.id)).map((format) => (
+                    <div key={format.id} className="p-4 border rounded-lg bg-blue-50 border-blue-200">
+                      <h4 className="font-semibold text-lg mb-2">{format.name}</h4>
+                      <p className="text-gray-600 text-sm mb-3">{format.description}</p>
+                      <div className="text-xs bg-white p-2 rounded font-mono overflow-x-auto">
+                        {format.example.slice(0, 100)}
+                        {format.example.length > 100 && '...'}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
+              
+              {/* 标记语言 */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3 text-purple-600">📝 标记语言</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {formats.filter(f => ['markdown', 'html', 'latex', 'rst'].includes(f.id)).map((format) => (
+                    <div key={format.id} className="p-4 border rounded-lg bg-purple-50 border-purple-200">
+                      <h4 className="font-semibold text-lg mb-2">{format.name}</h4>
+                      <p className="text-gray-600 text-sm mb-3">{format.description}</p>
+                      <div className="text-xs bg-white p-2 rounded font-mono overflow-x-auto">
+                        {format.example.slice(0, 150)}
+                        {format.example.length > 150 && '...'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -280,7 +320,7 @@ export default function CodeConverter() {
             <CardTitle>📖 使用说明</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-gray-600">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-sm text-gray-600">
               <div>
                 <h4 className="font-semibold mb-2">基本操作：</h4>
                 <ul className="space-y-1">
@@ -292,13 +332,23 @@ export default function CodeConverter() {
                 </ul>
               </div>
               <div>
-                <h4 className="font-semibold mb-2">支持的转换：</h4>
+                <h4 className="font-semibold mb-2">数据格式转换：</h4>
                 <ul className="space-y-1">
                   <li>• JSON ↔ YAML ↔ XML ↔ CSV</li>
                   <li>• 任意格式 → Base64 编码</li>
                   <li>• Base64 → 解码为原始文本</li>
                   <li>• 智能错误检测和提示</li>
                   <li>• 支持复杂嵌套数据结构</li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-semibold mb-2">标记语言转换：</h4>
+                <ul className="space-y-1">
+                  <li>• Markdown ↔ HTML ↔ LaTeX</li>
+                  <li>• reStructuredText 互转</li>
+                  <li>• 保留基本格式和结构</li>
+                  <li>• 支持标题、列表、链接转换</li>
+                  <li>• 文档格式无缝切换</li>
                 </ul>
               </div>
             </div>

@@ -1,5 +1,5 @@
 // 数据格式类型定义
-export type DataFormat = 'json' | 'yaml' | 'xml' | 'csv' | 'base64'
+export type DataFormat = 'json' | 'yaml' | 'xml' | 'csv' | 'base64' | 'markdown' | 'html' | 'latex' | 'rst'
 
 export interface ConversionResult {
   success: boolean
@@ -67,6 +67,83 @@ hobbies:
     name: 'Base64',
     description: 'Base64 编码',
     example: `SGVsbG8gV29ybGQhIOWTiCDkuJbnlYw=`
+  },
+  markdown: {
+    id: 'markdown',
+    name: 'Markdown',
+    description: '轻量级标记语言',
+    example: `# 标题
+## 二级标题
+
+这是一段**粗体**文本和*斜体*文本。
+
+- 列表项 1
+- 列表项 2
+- 列表项 3
+
+[链接](https://example.com)
+
+\`\`\`javascript
+console.log('Hello World!');
+\`\`\``
+  },
+  html: {
+    id: 'html',
+    name: 'HTML',
+    description: '超文本标记语言',
+    example: `<!DOCTYPE html>
+<html>
+<head>
+    <title>示例页面</title>
+</head>
+<body>
+    <h1>标题</h1>
+    <p>这是一个<strong>HTML</strong>示例。</p>
+    <ul>
+        <li>列表项 1</li>
+        <li>列表项 2</li>
+    </ul>
+</body>
+</html>`
+  },
+  latex: {
+    id: 'latex',
+    name: 'LaTeX',
+    description: '学术文档排版系统',
+    example: `\\documentclass{article}
+\\begin{document}
+
+\\title{示例文档}
+\\author{作者}
+\\maketitle
+
+\\section{介绍}
+这是一个 \\textbf{LaTeX} 文档示例。
+
+\\begin{itemize}
+    \\item 列表项 1
+    \\item 列表项 2
+\\end{itemize}
+
+\\end{document}`
+  },
+  rst: {
+    id: 'rst',
+    name: 'reStructuredText',
+    description: '结构化文本标记语言',
+    example: `标题
+====
+
+这是 **reStructuredText** 格式的示例。
+
+- 列表项 1
+- 列表项 2
+
+代码块::
+
+    print("Hello World!")
+
+`链接 <https://example.com>`_`
   }
 }
 
@@ -84,6 +161,14 @@ export function convertFromJSON(jsonStr: string, targetFormat: DataFormat): Conv
         return { success: true, data: jsonToCsv(data) }
       case 'base64':
         return { success: true, data: btoa(unescape(encodeURIComponent(jsonStr))) }
+      case 'markdown':
+        return { success: true, data: jsonToMarkdown(data) }
+      case 'html':
+        return { success: true, data: jsonToHtml(data) }
+      case 'latex':
+        return { success: true, data: jsonToLatex(data) }
+      case 'rst':
+        return { success: true, data: jsonToRst(data) }
       case 'json':
         return { success: true, data: JSON.stringify(data, null, 2) }
       default:
@@ -108,6 +193,14 @@ export function convertFromYAML(yamlStr: string, targetFormat: DataFormat): Conv
         return { success: true, data: jsonToCsv(data) }
       case 'base64':
         return { success: true, data: btoa(unescape(encodeURIComponent(yamlStr))) }
+      case 'markdown':
+        return { success: true, data: jsonToMarkdown(data) }
+      case 'html':
+        return { success: true, data: jsonToHtml(data) }
+      case 'latex':
+        return { success: true, data: jsonToLatex(data) }
+      case 'rst':
+        return { success: true, data: jsonToRst(data) }
       case 'yaml':
         return { success: true, data: yamlStr }
       default:
@@ -132,6 +225,14 @@ export function convertFromXML(xmlStr: string, targetFormat: DataFormat): Conver
         return { success: true, data: jsonToCsv(data) }
       case 'base64':
         return { success: true, data: btoa(unescape(encodeURIComponent(xmlStr))) }
+      case 'markdown':
+        return { success: true, data: jsonToMarkdown(data) }
+      case 'html':
+        return { success: true, data: jsonToHtml(data) }
+      case 'latex':
+        return { success: true, data: jsonToLatex(data) }
+      case 'rst':
+        return { success: true, data: jsonToRst(data) }
       case 'xml':
         return { success: true, data: xmlStr }
       default:
@@ -156,6 +257,14 @@ export function convertFromCSV(csvStr: string, targetFormat: DataFormat): Conver
         return { success: true, data: jsonToXml(data) }
       case 'base64':
         return { success: true, data: btoa(unescape(encodeURIComponent(csvStr))) }
+      case 'markdown':
+        return { success: true, data: jsonToMarkdown(data) }
+      case 'html':
+        return { success: true, data: jsonToHtml(data) }
+      case 'latex':
+        return { success: true, data: jsonToLatex(data) }
+      case 'rst':
+        return { success: true, data: jsonToRst(data) }
       case 'csv':
         return { success: true, data: csvStr }
       default:
@@ -181,6 +290,14 @@ export function convertFromBase64(base64Str: string, targetFormat: DataFormat): 
         return convertFromJSON(decoded, 'xml')
       case 'csv':
         return convertFromJSON(decoded, 'csv')
+      case 'markdown':
+        return { success: true, data: decoded }
+      case 'html':
+        return { success: true, data: decoded }
+      case 'latex':
+        return { success: true, data: decoded }
+      case 'rst':
+        return { success: true, data: decoded }
       case 'base64':
         return { success: true, data: base64Str }
       default:
@@ -191,7 +308,114 @@ export function convertFromBase64(base64Str: string, targetFormat: DataFormat): 
   }
 }
 
-// 主转换函数
+// Markdown 转换
+export function convertFromMarkdown(markdownStr: string, targetFormat: DataFormat): ConversionResult {
+  try {
+    switch (targetFormat) {
+      case 'html':
+        return { success: true, data: markdownToHtml(markdownStr) }
+      case 'latex':
+        return { success: true, data: markdownToLatex(markdownStr) }
+      case 'rst':
+        return { success: true, data: markdownToRst(markdownStr) }
+      case 'base64':
+        return { success: true, data: btoa(unescape(encodeURIComponent(markdownStr))) }
+      case 'markdown':
+        return { success: true, data: markdownStr }
+      case 'json':
+      case 'yaml':
+      case 'xml':
+      case 'csv':
+        return { success: false, error: `Markdown无法直接转换为${formatInfo[targetFormat].name}格式` }
+      default:
+        return { success: false, error: '不支持的目标格式' }
+    }
+  } catch (error) {
+    return { success: false, error: `Markdown解析错误: ${error instanceof Error ? error.message : '未知错误'}` }
+  }
+}
+
+// HTML 转换
+export function convertFromHTML(htmlStr: string, targetFormat: DataFormat): ConversionResult {
+  try {
+    switch (targetFormat) {
+      case 'markdown':
+        return { success: true, data: htmlToMarkdown(htmlStr) }
+      case 'latex':
+        return { success: true, data: htmlToLatex(htmlStr) }
+      case 'rst':
+        return { success: true, data: htmlToRst(htmlStr) }
+      case 'base64':
+        return { success: true, data: btoa(unescape(encodeURIComponent(htmlStr))) }
+      case 'html':
+        return { success: true, data: htmlStr }
+      case 'json':
+      case 'yaml':
+      case 'xml':
+      case 'csv':
+        return { success: false, error: `HTML无法直接转换为${formatInfo[targetFormat].name}格式` }
+      default:
+        return { success: false, error: '不支持的目标格式' }
+    }
+  } catch (error) {
+    return { success: false, error: `HTML解析错误: ${error instanceof Error ? error.message : '未知错误'}` }
+  }
+}
+
+// LaTeX 转换
+export function convertFromLatex(latexStr: string, targetFormat: DataFormat): ConversionResult {
+  try {
+    switch (targetFormat) {
+      case 'markdown':
+        return { success: true, data: latexToMarkdown(latexStr) }
+      case 'html':
+        return { success: true, data: latexToHtml(latexStr) }
+      case 'rst':
+        return { success: true, data: latexToRst(latexStr) }
+      case 'base64':
+        return { success: true, data: btoa(unescape(encodeURIComponent(latexStr))) }
+      case 'latex':
+        return { success: true, data: latexStr }
+      case 'json':
+      case 'yaml':
+      case 'xml':
+      case 'csv':
+        return { success: false, error: `LaTeX无法直接转换为${formatInfo[targetFormat].name}格式` }
+      default:
+        return { success: false, error: '不支持的目标格式' }
+    }
+  } catch (error) {
+    return { success: false, error: `LaTeX解析错误: ${error instanceof Error ? error.message : '未知错误'}` }
+  }
+}
+
+// reStructuredText 转换
+export function convertFromRst(rstStr: string, targetFormat: DataFormat): ConversionResult {
+  try {
+    switch (targetFormat) {
+      case 'markdown':
+        return { success: true, data: rstToMarkdown(rstStr) }
+      case 'html':
+        return { success: true, data: rstToHtml(rstStr) }
+      case 'latex':
+        return { success: true, data: rstToLatex(rstStr) }
+      case 'base64':
+        return { success: true, data: btoa(unescape(encodeURIComponent(rstStr))) }
+      case 'rst':
+        return { success: true, data: rstStr }
+      case 'json':
+      case 'yaml':
+      case 'xml':
+      case 'csv':
+        return { success: false, error: `reStructuredText无法直接转换为${formatInfo[targetFormat].name}格式` }
+      default:
+        return { success: false, error: '不支持的目标格式' }
+    }
+  } catch (error) {
+    return { success: false, error: `reStructuredText解析错误: ${error instanceof Error ? error.message : '未知错误'}` }
+  }
+}
+
 export function convertData(input: string, sourceFormat: DataFormat, targetFormat: DataFormat): ConversionResult {
   if (!input.trim()) {
     return { success: false, error: '输入内容不能为空' }
@@ -212,6 +436,14 @@ export function convertData(input: string, sourceFormat: DataFormat, targetForma
       return convertFromCSV(input, targetFormat)
     case 'base64':
       return convertFromBase64(input, targetFormat)
+    case 'markdown':
+      return convertFromMarkdown(input, targetFormat)
+    case 'html':
+      return convertFromHTML(input, targetFormat)
+    case 'latex':
+      return convertFromLatex(input, targetFormat)
+    case 'rst':
+      return convertFromRst(input, targetFormat)
     default:
       return { success: false, error: '不支持的源格式' }
   }
@@ -375,4 +607,296 @@ function stringify(obj: any, indent = 0): string {
   }
   
   return String(obj)
+}
+
+// JSON 到标记语言的转换函数
+function jsonToMarkdown(obj: any): string {
+  function toMarkdown(obj: any, level = 1): string {
+    if (Array.isArray(obj)) {
+      return obj.map(item => `- ${typeof item === 'object' ? JSON.stringify(item) : item}`).join('\n')
+    }
+    
+    if (typeof obj === 'object' && obj !== null) {
+      return Object.entries(obj)
+        .map(([key, value]) => {
+          const prefix = '#'.repeat(level)
+          if (Array.isArray(value)) {
+            return `${prefix} ${key}\n\n${toMarkdown(value, level + 1)}`
+          } else if (typeof value === 'object' && value !== null) {
+            return `${prefix} ${key}\n\n${toMarkdown(value, level + 1)}`
+          } else {
+            return `${prefix} ${key}\n\n${value}`
+          }
+        })
+        .join('\n\n')
+    }
+    
+    return String(obj)
+  }
+  
+  return toMarkdown(obj)
+}
+
+function jsonToHtml(obj: any): string {
+  function toHtml(obj: any): string {
+    if (Array.isArray(obj)) {
+      const items = obj.map(item => `<li>${typeof item === 'object' ? toHtml(item) : escapeHtml(String(item))}</li>`).join('')
+      return `<ul>${items}</ul>`
+    }
+    
+    if (typeof obj === 'object' && obj !== null) {
+      const content = Object.entries(obj)
+        .map(([key, value]) => `<div><strong>${escapeHtml(key)}:</strong> ${toHtml(value)}</div>`)
+        .join('')
+      return content
+    }
+    
+    return escapeHtml(String(obj))
+  }
+  
+  return `<!DOCTYPE html>
+<html>
+<head>
+    <title>转换结果</title>
+    <meta charset="UTF-8">
+</head>
+<body>
+    ${toHtml(obj)}
+</body>
+</html>`
+}
+
+function jsonToLatex(obj: any): string {
+  function toLatex(obj: any, level = 1): string {
+    if (Array.isArray(obj)) {
+      const items = obj.map(item => `    \\item ${typeof item === 'object' ? JSON.stringify(item) : escapeLatex(String(item))}`).join('\n')
+      return `\\begin{itemize}\n${items}\n\\end{itemize}`
+    }
+    
+    if (typeof obj === 'object' && obj !== null) {
+      return Object.entries(obj)
+        .map(([key, value]) => {
+          const section = level === 1 ? 'section' : level === 2 ? 'subsection' : 'subsubsection'
+          if (Array.isArray(value) || (typeof value === 'object' && value !== null)) {
+            return `\\${section}{${escapeLatex(key)}}\n\n${toLatex(value, level + 1)}`
+          } else {
+            return `\\${section}{${escapeLatex(key)}}\n\n${escapeLatex(String(value))}`
+          }
+        })
+        .join('\n\n')
+    }
+    
+    return escapeLatex(String(obj))
+  }
+  
+  return `\\documentclass{article}
+\\usepackage[utf8]{inputenc}
+\\begin{document}
+
+\\title{数据转换结果}
+\\maketitle
+
+${toLatex(obj)}
+
+\\end{document}`
+}
+
+function jsonToRst(obj: any): string {
+  function toRst(obj: any, level = 1): string {
+    const underlines = ['=', '-', '~', '^']
+    
+    if (Array.isArray(obj)) {
+      return obj.map(item => `- ${typeof item === 'object' ? JSON.stringify(item) : item}`).join('\n')
+    }
+    
+    if (typeof obj === 'object' && obj !== null) {
+      return Object.entries(obj)
+        .map(([key, value]) => {
+          const underline = underlines[Math.min(level - 1, underlines.length - 1)]
+          const title = `${key}\n${underline.repeat(key.length)}`
+          
+          if (Array.isArray(value) || (typeof value === 'object' && value !== null)) {
+            return `${title}\n\n${toRst(value, level + 1)}`
+          } else {
+            return `${title}\n\n${value}`
+          }
+        })
+        .join('\n\n')
+    }
+    
+    return String(obj)
+  }
+  
+  return toRst(obj)
+}
+
+// 标记语言互转函数
+function markdownToHtml(markdown: string): string {
+  return markdown
+    .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+    .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+    .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
+    .replace(/^- (.*$)/gim, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>')
+    .replace(/\n/g, '<br>')
+}
+
+function markdownToLatex(markdown: string): string {
+  return markdown
+    .replace(/^### (.*$)/gim, '\\subsubsection{$1}')
+    .replace(/^## (.*$)/gim, '\\subsection{$1}')
+    .replace(/^# (.*$)/gim, '\\section{$1}')
+    .replace(/\*\*(.*?)\*\*/g, '\\textbf{$1}')
+    .replace(/\*(.*?)\*/g, '\\textit{$1}')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '\\href{$2}{$1}')
+    .replace(/^- (.*$)/gim, '\\item $1')
+    .replace(/(\\item .*\n?)+/g, '\\begin{itemize}\n$&\\end{itemize}\n')
+}
+
+function markdownToRst(markdown: string): string {
+  return markdown
+    .replace(/^### (.*$)/gim, (match, title) => `${title}\n${'~'.repeat(title.length)}`)
+    .replace(/^## (.*$)/gim, (match, title) => `${title}\n${'-'.repeat(title.length)}`)
+    .replace(/^# (.*$)/gim, (match, title) => `${title}\n${'='.repeat(title.length)}`)
+    .replace(/\*\*(.*?)\*\*/g, '**$1**')
+    .replace(/\*(.*?)\*/g, '*$1*')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '`$1 <$2>`_')
+    .replace(/^- (.*$)/gim, '- $1')
+}
+
+function htmlToMarkdown(html: string): string {
+  return html
+    .replace(/<h1>(.*?)<\/h1>/g, '# $1')
+    .replace(/<h2>(.*?)<\/h2>/g, '## $1')
+    .replace(/<h3>(.*?)<\/h3>/g, '### $1')
+    .replace(/<strong>(.*?)<\/strong>/g, '**$1**')
+    .replace(/<em>(.*?)<\/em>/g, '*$1*')
+    .replace(/<a href="([^"]*)">(.*?)<\/a>/g, '[$2]($1)')
+    .replace(/<li>(.*?)<\/li>/g, '- $1')
+    .replace(/<br\s*\/?>/g, '\n')
+    .replace(/<[^>]*>/g, '')
+}
+
+function htmlToLatex(html: string): string {
+  return html
+    .replace(/<h1>(.*?)<\/h1>/g, '\\section{$1}')
+    .replace(/<h2>(.*?)<\/h2>/g, '\\subsection{$1}')
+    .replace(/<h3>(.*?)<\/h3>/g, '\\subsubsection{$1}')
+    .replace(/<strong>(.*?)<\/strong>/g, '\\textbf{$1}')
+    .replace(/<em>(.*?)<\/em>/g, '\\textit{$1}')
+    .replace(/<a href="([^"]*)">(.*?)<\/a>/g, '\\href{$1}{$2}')
+    .replace(/<li>(.*?)<\/li>/g, '\\item $1')
+    .replace(/<[^>]*>/g, '')
+}
+
+function htmlToRst(html: string): string {
+  return html
+    .replace(/<h1>(.*?)<\/h1>/g, (match, title) => `${title}\n${'='.repeat(title.length)}`)
+    .replace(/<h2>(.*?)<\/h2>/g, (match, title) => `${title}\n${'-'.repeat(title.length)}`)
+    .replace(/<h3>(.*?)<\/h3>/g, (match, title) => `${title}\n${'~'.repeat(title.length)}`)
+    .replace(/<strong>(.*?)<\/strong>/g, '**$1**')
+    .replace(/<em>(.*?)<\/em>/g, '*$1*')
+    .replace(/<a href="([^"]*)">(.*?)<\/a>/g, '`$2 <$1>`_')
+    .replace(/<li>(.*?)<\/li>/g, '- $1')
+    .replace(/<[^>]*>/g, '')
+}
+
+function latexToMarkdown(latex: string): string {
+  return latex
+    .replace(/\\section\{([^}]+)\}/g, '# $1')
+    .replace(/\\subsection\{([^}]+)\}/g, '## $1')
+    .replace(/\\subsubsection\{([^}]+)\}/g, '### $1')
+    .replace(/\\textbf\{([^}]+)\}/g, '**$1**')
+    .replace(/\\textit\{([^}]+)\}/g, '*$1*')
+    .replace(/\\href\{([^}]+)\}\{([^}]+)\}/g, '[$2]($1)')
+    .replace(/\\item\s+/g, '- ')
+    .replace(/\\begin\{[^}]+\}|\\end\{[^}]+\}/g, '')
+    .replace(/\\[a-zA-Z]+(\{[^}]*\})?/g, '')
+}
+
+function latexToHtml(latex: string): string {
+  return latex
+    .replace(/\\section\{([^}]+)\}/g, '<h1>$1</h1>')
+    .replace(/\\subsection\{([^}]+)\}/g, '<h2>$1</h2>')
+    .replace(/\\subsubsection\{([^}]+)\}/g, '<h3>$1</h3>')
+    .replace(/\\textbf\{([^}]+)\}/g, '<strong>$1</strong>')
+    .replace(/\\textit\{([^}]+)\}/g, '<em>$1</em>')
+    .replace(/\\href\{([^}]+)\}\{([^}]+)\}/g, '<a href="$1">$2</a>')
+    .replace(/\\item\s+/g, '<li>')
+    .replace(/\\begin\{[^}]+\}|\\end\{[^}]+\}/g, '')
+    .replace(/\\[a-zA-Z]+(\{[^}]*\})?/g, '')
+}
+
+function latexToRst(latex: string): string {
+  return latex
+    .replace(/\\section\{([^}]+)\}/g, (match, title) => `${title}\n${'='.repeat(title.length)}`)
+    .replace(/\\subsection\{([^}]+)\}/g, (match, title) => `${title}\n${'-'.repeat(title.length)}`)
+    .replace(/\\subsubsection\{([^}]+)\}/g, (match, title) => `${title}\n${'~'.repeat(title.length)}`)
+    .replace(/\\textbf\{([^}]+)\}/g, '**$1**')
+    .replace(/\\textit\{([^}]+)\}/g, '*$1*')
+    .replace(/\\href\{([^}]+)\}\{([^}]+)\}/g, '`$2 <$1>`_')
+    .replace(/\\item\s+/g, '- ')
+    .replace(/\\begin\{[^}]+\}|\\end\{[^}]+\}/g, '')
+    .replace(/\\[a-zA-Z]+(\{[^}]*\})?/g, '')
+}
+
+function rstToMarkdown(rst: string): string {
+  return rst
+    .replace(/^(.+)\n=+$/gm, '# $1')
+    .replace(/^(.+)\n-+$/gm, '## $1')
+    .replace(/^(.+)\n~+$/gm, '### $1')
+    .replace(/\*\*([^*]+)\*\*/g, '**$1**')
+    .replace(/\*([^*]+)\*/g, '*$1*')
+    .replace(/`([^<]+) <([^>]+)>`_/g, '[$1]($2)')
+    .replace(/^- /gm, '- ')
+}
+
+function rstToHtml(rst: string): string {
+  return rst
+    .replace(/^(.+)\n=+$/gm, '<h1>$1</h1>')
+    .replace(/^(.+)\n-+$/gm, '<h2>$1</h2>')
+    .replace(/^(.+)\n~+$/gm, '<h3>$1</h3>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+    .replace(/`([^<]+) <([^>]+)>`_/g, '<a href="$2">$1</a>')
+    .replace(/^- /gm, '<li>')
+}
+
+function rstToLatex(rst: string): string {
+  return rst
+    .replace(/^(.+)\n=+$/gm, '\\section{$1}')
+    .replace(/^(.+)\n-+$/gm, '\\subsection{$1}')
+    .replace(/^(.+)\n~+$/gm, '\\subsubsection{$1}')
+    .replace(/\*\*([^*]+)\*\*/g, '\\textbf{$1}')
+    .replace(/\*([^*]+)\*/g, '\\textit{$1}')
+    .replace(/`([^<]+) <([^>]+)>`_/g, '\\href{$2}{$1}')
+    .replace(/^- /gm, '\\item ')
+}
+
+// 辅助函数
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+function escapeLatex(text: string): string {
+  return text
+    .replace(/\\/g, '\\textbackslash{}')
+    .replace(/\{/g, '\\{')
+    .replace(/\}/g, '\\}')
+    .replace(/\$/g, '\\$')
+    .replace(/&/g, '\\&')
+    .replace(/%/g, '\\%')
+    .replace(/#/g, '\\#')
+    .replace(/\^/g, '\\textasciicircum{}')
+    .replace(/_/g, '\\_')
+    .replace(/~/g, '\\textasciitilde{}')
+}
 }

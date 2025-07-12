@@ -1,0 +1,310 @@
+'use client'
+
+import { useState, useCallback, useEffect } from 'react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { ArrowRightLeft, Copy, FileText, RotateCcw, Download, ArrowUpDown } from 'lucide-react'
+import { convertData, formatInfo, type DataFormat } from './utils'
+
+export default function CodeConverter() {
+  const [sourceFormat, setSourceFormat] = useState<DataFormat>('json')
+  const [targetFormat, setTargetFormat] = useState<DataFormat>('yaml')
+  const [inputText, setInputText] = useState('')
+  const [outputText, setOutputText] = useState('')
+  const [error, setError] = useState('')
+  const [isConverting, setIsConverting] = useState(false)
+
+  // 实时转换
+  const handleConvert = useCallback(() => {
+    if (!inputText.trim()) {
+      setOutputText('')
+      setError('')
+      return
+    }
+
+    setIsConverting(true)
+    setError('')
+
+    try {
+      const result = convertData(inputText, sourceFormat, targetFormat)
+      
+      if (result.success) {
+        setOutputText(result.data || '')
+        setError('')
+      } else {
+        setError(result.error || '转换失败')
+        setOutputText('')
+      }
+    } catch (err) {
+      setError(`转换出错: ${err instanceof Error ? err.message : '未知错误'}`)
+      setOutputText('')
+    } finally {
+      setIsConverting(false)
+    }
+  }, [inputText, sourceFormat, targetFormat])
+
+  // 输入变化时自动转换
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (inputText.trim()) {
+        handleConvert()
+      }
+    }, 300)
+    
+    return () => clearTimeout(timer)
+  }, [inputText, sourceFormat, targetFormat, handleConvert])
+
+  // 交换格式
+  const swapFormats = () => {
+    setSourceFormat(targetFormat)
+    setTargetFormat(sourceFormat)
+    setInputText(outputText)
+    setOutputText('')
+  }
+
+  // 复制结果
+  const copyResult = async () => {
+    if (outputText) {
+      await navigator.clipboard.writeText(outputText)
+    }
+  }
+
+  // 清空内容
+  const clearAll = () => {
+    setInputText('')
+    setOutputText('')
+    setError('')
+  }
+
+  // 加载示例
+  const loadExample = () => {
+    const example = formatInfo[sourceFormat].example
+    setInputText(example)
+  }
+
+  // 下载结果
+  const downloadResult = () => {
+    if (outputText) {
+      const blob = new Blob([outputText], { type: 'text/plain' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `converted.${targetFormat}`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    }
+  }
+
+  const formats = Object.values(formatInfo)
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4">
+      <div className="max-w-7xl mx-auto">
+        {/* 标题区域 */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-gray-800 mb-4">🔄 代码转换器</h1>
+          <p className="text-xl text-gray-600 mb-2">
+            支持 JSON • YAML • XML • CSV • Base64 格式互转
+          </p>
+          <p className="text-gray-500">
+            开发者必备工具，实时转换预览，一键复制结果
+          </p>
+        </div>
+
+        {/* 格式选择区域 */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ArrowRightLeft className="w-5 h-5" />
+              格式转换设置
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-4 flex-wrap">
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium">从:</label>
+                <Select value={sourceFormat} onValueChange={(value) => setSourceFormat(value as DataFormat)}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {formats.map((format) => (
+                      <SelectItem key={format.id} value={format.id}>
+                        {format.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={swapFormats}
+                className="flex items-center gap-2"
+              >
+                <ArrowUpDown className="w-4 h-4" />
+                交换
+              </Button>
+
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium">到:</label>
+                <Select value={targetFormat} onValueChange={(value) => setTargetFormat(value as DataFormat)}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {formats.map((format) => (
+                      <SelectItem key={format.id} value={format.id}>
+                        {format.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex gap-2 ml-auto">
+                <Button variant="outline" size="sm" onClick={loadExample}>
+                  <FileText className="w-4 h-4 mr-2" />
+                  示例
+                </Button>
+                <Button variant="outline" size="sm" onClick={clearAll}>
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                  清空
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 转换区域 */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          {/* 输入区域 */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>📝 输入 ({formatInfo[sourceFormat].name})</span>
+                <span className="text-sm font-normal text-gray-500">
+                  {formatInfo[sourceFormat].description}
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <textarea
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                placeholder={`请输入 ${formatInfo[sourceFormat].name} 格式的数据...`}
+                className="w-full h-96 p-4 border border-gray-300 rounded-lg font-mono text-sm resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </CardContent>
+          </Card>
+
+          {/* 输出区域 */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>📋 输出 ({formatInfo[targetFormat].name})</span>
+                <div className="flex gap-2">
+                  {outputText && (
+                    <>
+                      <Button variant="outline" size="sm" onClick={copyResult}>
+                        <Copy className="w-4 h-4 mr-2" />
+                        复制
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={downloadResult}>
+                        <Download className="w-4 h-4 mr-2" />
+                        下载
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <textarea
+                value={outputText}
+                readOnly
+                placeholder={isConverting ? '转换中...' : `转换后的 ${formatInfo[targetFormat].name} 格式数据将显示在这里`}
+                className="w-full h-96 p-4 border border-gray-300 rounded-lg font-mono text-sm resize-none bg-gray-50 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* 错误提示 */}
+        {error && (
+          <Alert className="mb-6 border-red-200 bg-red-50">
+            <AlertDescription className="text-red-700">
+              ❌ {error}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* 成功提示 */}
+        {outputText && !error && (
+          <Alert className="mb-6 border-green-200 bg-green-50">
+            <AlertDescription className="text-green-700">
+              ✅ 转换成功！已生成 {outputText.split('\n').length} 行输出
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* 支持的格式说明 */}
+        <Card>
+          <CardHeader>
+            <CardTitle>📊 支持的格式</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {formats.map((format) => (
+                <div key={format.id} className="p-4 border rounded-lg bg-white">
+                  <h3 className="font-semibold text-lg mb-2">{format.name}</h3>
+                  <p className="text-gray-600 text-sm mb-3">{format.description}</p>
+                  <div className="text-xs bg-gray-100 p-2 rounded font-mono overflow-x-auto">
+                    {format.example.slice(0, 100)}
+                    {format.example.length > 100 && '...'}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 使用说明 */}
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>📖 使用说明</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-gray-600">
+              <div>
+                <h4 className="font-semibold mb-2">基本操作：</h4>
+                <ul className="space-y-1">
+                  <li>• 选择源格式和目标格式</li>
+                  <li>• 在左侧输入框粘贴或输入数据</li>
+                  <li>• 系统会自动实时转换并显示结果</li>
+                  <li>• 点击"复制"按钮复制转换结果</li>
+                  <li>• 点击"示例"查看格式示例</li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-semibold mb-2">支持的转换：</h4>
+                <ul className="space-y-1">
+                  <li>• JSON ↔ YAML ↔ XML ↔ CSV</li>
+                  <li>• 任意格式 → Base64 编码</li>
+                  <li>• Base64 → 解码为原始文本</li>
+                  <li>• 智能错误检测和提示</li>
+                  <li>• 支持复杂嵌套数据结构</li>
+                </ul>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
+}

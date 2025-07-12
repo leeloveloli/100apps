@@ -20,6 +20,7 @@ const statusConfig = {
 
 // 已完成的应用映射
 const completedAppRoutes: Record<number, string> = {
+  3: '/apps/code-converter', // 代码转换器
   9: '/apps/calculator', // 在线计算器
 }
 
@@ -139,6 +140,8 @@ const generateInitialProjects = (): Project[] => {
 
     // 计算器已完成
     if (id === 9) status = "completed"
+    // 代码转换器已完成  
+    if (id === 3) status = "completed"
 
     return {
       id,

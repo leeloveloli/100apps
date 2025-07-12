@@ -9,6 +9,7 @@ export interface AppModule {
 // 应用注册表 - 延迟加载所有应用
 const APP_REGISTRY = {
   calculator: () => import('@/apps/calculator/app'),
+  'code-converter': () => import('@/apps/code-converter/app'),
   // 更多应用将在这里注册...
 } as const
 

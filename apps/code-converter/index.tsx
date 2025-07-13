@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { ArrowRightLeft, Copy, FileText, RotateCcw, Download, ArrowUpDown } from 'lucide-react'
+import { Progress } from '@/components/ui/progress'
+import { ArrowRightLeft, Copy, FileText, RotateCcw, Download, ArrowUpDown, Upload, Loader2 } from 'lucide-react'
 import { convertData, formatInfo, type DataFormat } from './utils'
 
 export default function CodeConverter() {
@@ -15,6 +16,9 @@ export default function CodeConverter() {
   const [outputText, setOutputText] = useState('')
   const [error, setError] = useState('')
   const [isConverting, setIsConverting] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
+  const [conversionProgress, setConversionProgress] = useState(0)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // 格式分类定义
   const formatCategories = {
@@ -44,29 +48,124 @@ export default function CodeConverter() {
     if (!inputText.trim()) {
       setOutputText('')
       setError('')
+      setConversionProgress(0)
       return
     }
 
     setIsConverting(true)
     setError('')
+    setConversionProgress(0)
+
+    // 模拟进度条
+    const progressInterval = setInterval(() => {
+      setConversionProgress(prev => {
+        if (prev >= 90) {
+          clearInterval(progressInterval)
+          return prev
+        }
+        return prev + 10
+      })
+    }, 50)
 
     try {
-      const result = convertData(inputText, sourceFormat, targetFormat)
-      
-      if (result.success) {
-        setOutputText(result.data || '')
-        setError('')
-      } else {
-        setError(result.error || '转换失败')
-        setOutputText('')
-      }
+      setTimeout(() => {
+        const result = convertData(inputText, sourceFormat, targetFormat)
+        
+        if (result.success) {
+          setOutputText(result.data || '')
+          setError('')
+          setConversionProgress(100)
+        } else {
+          setError(result.error || '转换失败')
+          setOutputText('')
+          setConversionProgress(0)
+        }
+        
+        clearInterval(progressInterval)
+        setTimeout(() => {
+          setIsConverting(false)
+          setConversionProgress(0)
+        }, 500)
+      }, 200)
     } catch (err) {
+      clearInterval(progressInterval)
       setError(`转换出错: ${err instanceof Error ? err.message : '未知错误'}`)
       setOutputText('')
-    } finally {
+      setConversionProgress(0)
       setIsConverting(false)
     }
   }, [inputText, sourceFormat, targetFormat])
+
+  // 文件读取处理
+  const handleFileRead = (file: File) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const content = e.target?.result as string
+      setInputText(content)
+      
+      // 根据文件扩展名自动检测格式
+      const ext = file.name.split('.').pop()?.toLowerCase()
+      const formatMap: Record<string, DataFormat> = {
+        'json': 'json',
+        'yaml': 'yaml', 'yml': 'yaml',
+        'xml': 'xml',
+        'csv': 'csv',
+        'md': 'markdown',
+        'html': 'html', 'htm': 'html',
+        'tex': 'latex',
+        'rst': 'rst',
+        'js': 'javascript',
+        'ts': 'typescript',
+        'py': 'python',
+        'go': 'go',
+        'java': 'java',
+        'cs': 'csharp',
+        'php': 'php',
+        'rs': 'rust',
+        'swift': 'swift',
+        'cpp': 'cpp', 'cc': 'cpp', 'cxx': 'cpp'
+      }
+      
+      if (ext && formatMap[ext]) {
+        setSourceFormat(formatMap[ext])
+      }
+    }
+    reader.readAsText(file)
+  }
+
+  // 拖拽处理
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(false)
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(false)
+    
+    const files = Array.from(e.dataTransfer.files)
+    if (files.length > 0) {
+      handleFileRead(files[0])
+    }
+  }
+
+  // 文件选择处理
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (files && files.length > 0) {
+      handleFileRead(files[0])
+    }
+  }
+
+  // 打开文件选择对话框
+  const openFileDialog = () => {
+    fileInputRef.current?.click()
+  }
 
   // 输入变化时自动转换
   useEffect(() => {
@@ -237,6 +336,10 @@ export default function CodeConverter() {
               </div>
 
               <div className="flex gap-2 ml-auto">
+                <Button variant="outline" size="sm" onClick={openFileDialog}>
+                  <Upload className="w-4 h-4 mr-2" />
+                  上传文件
+                </Button>
                 <Button variant="outline" size="sm" onClick={loadExample}>
                   <FileText className="w-4 h-4 mr-2" />
                   示例
@@ -247,6 +350,27 @@ export default function CodeConverter() {
                 </Button>
               </div>
             </div>
+            
+            {/* 隐藏的文件输入 */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json,.yaml,.yml,.xml,.csv,.md,.html,.htm,.tex,.rst,.js,.ts,.py,.go,.java,.cs,.php,.rs,.swift,.cpp,.cc,.cxx,.txt"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+
+            {/* 转换进度指示器 */}
+            {isConverting && (
+              <div className="mt-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span className="text-sm text-gray-600">正在转换中...</span>
+                  <span className="text-sm text-gray-500">{conversionProgress}%</span>
+                </div>
+                <Progress value={conversionProgress} className="w-full" />
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -263,12 +387,27 @@ export default function CodeConverter() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <textarea
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                placeholder={`请输入 ${formatInfo[sourceFormat].name} 格式的数据...`}
-                className="w-full h-96 p-4 border border-gray-300 rounded-lg font-mono text-sm resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+              <div 
+                className={`relative ${isDragging ? 'bg-blue-50 border-blue-300 border-2 border-dashed' : ''} rounded-lg`}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
+                <textarea
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  placeholder={`请输入 ${formatInfo[sourceFormat].name} 格式的数据... 或拖拽文件到此处`}
+                  className="w-full h-96 p-4 border border-gray-300 rounded-lg font-mono text-sm resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                {isDragging && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-blue-50 bg-opacity-90 rounded-lg">
+                    <div className="text-center">
+                      <Upload className="w-8 h-8 mx-auto mb-2 text-blue-500" />
+                      <p className="text-blue-600 font-medium">释放文件以上传</p>
+                    </div>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
 

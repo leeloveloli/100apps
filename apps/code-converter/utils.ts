@@ -1,5 +1,5 @@
 // 数据格式类型定义
-export type DataFormat = 'json' | 'yaml' | 'xml' | 'csv' | 'base64' | 'markdown' | 'html' | 'latex' | 'rst' | 'javascript' | 'typescript' | 'python' | 'go' | 'java' | 'csharp' | 'php' | 'rust' | 'swift' | 'cpp'
+export type DataFormat = 'json' | 'yaml' | 'xml' | 'csv' | 'base64' | 'markdown' | 'html' | 'latex' | 'rst' | 'javascript' | 'typescript' | 'python' | 'go' | 'java' | 'csharp' | 'php' | 'rust' | 'swift' | 'cpp' | 'kotlin' | 'ruby'
 
 export interface ConversionResult {
   success: boolean
@@ -1468,20 +1468,23 @@ function escapeLatex(text: string): string {
     .replace(/~/g, '\\textasciitilde{}')
 }
 
-// 编程语言转换函数
+// 编程语言转换函数 - 改进版本
 function jsToTypeScript(js: string): string {
   return js
-    .replace(/function\s+(\w+)\s*\(/g, 'function $1(')
-    .replace(/(\w+)\s*\(/g, '$1(')
-    .replace(/const\s+(\w+)\s*=/g, 'const $1: any =')
-    .replace(/let\s+(\w+)\s*=/g, 'let $1: any =')
-    .replace(/var\s+(\w+)\s*=/g, 'var $1: any =')
-    + '\n\n// 注意：需要手动添加类型注解'
+    .replace(/function\s+(\w+)\s*\(([^)]*)\)\s*{/g, 'function $1($2): any {')
+    .replace(/const\s+(\w+)\s*=\s*([^;]+);?/g, 'const $1: any = $2;')
+    .replace(/let\s+(\w+)\s*=\s*([^;]+);?/g, 'let $1: any = $2;')
+    .replace(/var\s+(\w+)\s*=\s*([^;]+);?/g, 'var $1: any = $2;')
+    + '\n\n// 注意：需要手动添加具体类型注解'
 }
 
 function jsToPython(js: string): string {
   return js
-    .replace(/function\s+(\w+)\s*\([^)]*\)\s*{/g, 'def $1():')
+    .replace(/function\s+(\w+)\s*\(([^)]*)\)\s*{/g, (match, funcName, params) => {
+      // 处理参数列表
+      const pythonParams = params.trim() ? params.replace(/\s*,\s*/g, ', ') : '';
+      return `def ${funcName}(${pythonParams}):`
+    })
     .replace(/const\s+(\w+)\s*=\s*([^;]+);?/g, '$1 = $2')
     .replace(/let\s+(\w+)\s*=\s*([^;]+);?/g, '$1 = $2')
     .replace(/var\s+(\w+)\s*=\s*([^;]+);?/g, '$1 = $2')
@@ -1491,36 +1494,70 @@ function jsToPython(js: string): string {
     .replace(/false/g, 'False')
     .replace(/null/g, 'None')
     .replace(/this\./g, 'self.')
-    .replace(/}\s*$/g, '')
+    .replace(/}\s*$/gm, '')
+    .split('\n')
+    .map(line => {
+      // 简单的缩进处理
+      if (line.trim().startsWith('def ') || line.trim().startsWith('class ')) {
+        return line
+      } else if (line.trim() && !line.startsWith('#')) {
+        return '    ' + line.trim()
+      }
+      return line
+    })
+    .join('\n')
     + '\n\n# 注意：需要手动调整缩进和语法'
 }
 
 function jsToGo(js: string): string {
+  const goCode = js
+    .replace(/console\.log\(/g, 'fmt.Println(')
+    .replace(/const\s+(\w+)\s*=\s*([^;]+);?/g, '$1 := $2')
+    .replace(/let\s+(\w+)\s*=\s*([^;]+);?/g, '$1 := $2')
+    .replace(/var\s+(\w+)\s*=\s*([^;]+);?/g, 'var $1 = $2')
+    .replace(/function\s+(\w+)\s*\(([^)]*)\)\s*{/g, (match, funcName, params) => {
+      if (funcName === 'main') {
+        return 'func main() {'
+      }
+      const goParams = params.trim() ? params.replace(/(\w+)/g, '$1 interface{}') : '';
+      return `func ${funcName}(${goParams}) interface{} {`
+    })
+    .replace(/true/g, 'true')
+    .replace(/false/g, 'false')
+    .replace(/null/g, 'nil')
+    
   return `package main
 
 import "fmt"
 
-func main() {
-    // 从 JavaScript 转换而来
-    ${js.replace(/console\.log\(/g, 'fmt.Println(')
-        .replace(/const\s+(\w+)\s*=\s*([^;]+);?/g, '$1 := $2')
-        .replace(/function\s+(\w+)\s*\([^)]*\)\s*{/g, 'func $1() {')}
-}
+${goCode}
 
 // 注意：需要手动调整 Go 语法和类型`
 }
 
 function jsToJava(js: string): string {
+  const javaCode = js
+    .replace(/console\.log\(/g, 'System.out.println(')
+    .replace(/const\s+(\w+)\s*=\s*([^;]+);?/g, 'Object $1 = $2;')
+    .replace(/let\s+(\w+)\s*=\s*([^;]+);?/g, 'Object $1 = $2;')
+    .replace(/var\s+(\w+)\s*=\s*([^;]+);?/g, 'Object $1 = $2;')
+    .replace(/function\s+(\w+)\s*\(([^)]*)\)\s*{/g, (match, funcName, params) => {
+      if (funcName === 'main') {
+        return 'public static void main(String[] args) {'
+      }
+      const javaParams = params.trim() ? 
+        params.split(',').map((p: string) => `Object ${p.trim()}`).join(', ') : '';
+      return `public static Object ${funcName}(${javaParams}) {`
+    })
+    .replace(/true/g, 'true')
+    .replace(/false/g, 'false')
+    .replace(/null/g, 'null')
+    
   return `public class ConvertedCode {
-    public static void main(String[] args) {
-        // 从 JavaScript 转换而来
-        ${js.replace(/console\.log\(/g, 'System.out.println(')
-            .replace(/const\s+(\w+)\s*=\s*([^;]+);?/g, 'var $1 = $2;')
-            .replace(/function\s+(\w+)\s*\([^)]*\)\s*{/g, 'public static void $1() {')}
-    }
+    ${javaCode}
 }
 
-// 注意：需要手动添加类型声明和调整语法`
+// 注意：需要手动添加具体类型声明和调整语法`
 }
 
 function jsToCSharp(js: string): string {

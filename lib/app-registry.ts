@@ -10,6 +10,7 @@ export interface AppModule {
 const APP_REGISTRY = {
   calculator: () => import('@/apps/calculator/app'),
   'code-converter': () => import('@/apps/code-converter/app'),
+  'markdown-editor': () => import('@/apps/markdown-editor/app'),
   // 更多应用将在这里注册...
 } as const
 

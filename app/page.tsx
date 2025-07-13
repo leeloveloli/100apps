@@ -27,6 +27,9 @@ const completedAppRoutes: Record<number, string> = {
   15: '/apps/rootcause-analyzer', // 5Why根因分析
 }
 
+// 配置版本 - 当有新应用完成时增加此版本号
+const CONFIG_VERSION = "1.5" // 包含5个已完成应用
+
 // 生成初始项目数据的函数
 const generateInitialProjects = (): Project[] => {
   const projectTitles = [
@@ -185,12 +188,28 @@ export default function HundredApps() {
   const [projects, setProjects] = useState<Project[]>([])
 
   useEffect(() => {
+    // 检查配置版本，如果版本不匹配则重新生成数据
+    const savedVersion = localStorage.getItem('config-version')
     const savedProjects = loadProjects()
-    if (savedProjects.length > 0) {
-      setProjects(savedProjects)
-    } else {
+    
+    if (savedVersion !== CONFIG_VERSION || savedProjects.length === 0) {
+      // 配置有更新或没有保存的数据，重新生成
       const initialProjects = generateInitialProjects()
       setProjects(initialProjects)
+      localStorage.setItem('config-version', CONFIG_VERSION)
+      // 不保存到localStorage，让数据始终从最新配置生成
+    } else {
+      // 使用保存的数据，但要合并最新的完成状态
+      const initialProjects = generateInitialProjects()
+      const mergedProjects = savedProjects.map(saved => {
+        const initial = initialProjects.find(p => p.id === saved.id)
+        if (initial && initial.status === 'completed' && saved.status !== 'completed') {
+          // 如果初始配置中标记为完成，但保存的数据中未完成，使用最新状态
+          return initial
+        }
+        return saved
+      })
+      setProjects(mergedProjects)
     }
   }, [])
 

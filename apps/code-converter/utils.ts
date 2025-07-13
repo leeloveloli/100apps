@@ -143,7 +143,9 @@ console.log('Hello World!');
 
     print("Hello World!")
 
-\`链接 <https://example.com>\`_`
+\`链接 <https://example.com>\`_
+
+更多信息请参考文档。`
   },
   javascript: {
     id: 'javascript',

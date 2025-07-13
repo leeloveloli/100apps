@@ -24,6 +24,7 @@ const completedAppRoutes: Record<number, string> = {
   9: '/apps/calculator', // 在线计算器
   10: '/apps/markdown-editor', // Markdown编辑器
   14: '/apps/qr-generator', // 二维码生成器
+  15: '/apps/rootcause-analyzer', // 5Why根因分析
 }
 
 // 生成初始项目数据的函数
@@ -44,6 +45,7 @@ const generateInitialProjects = (): Project[] => {
     "颜色选择器",
     "二维码生成器",
     "记账本",
+    "5Why根因分析",
     "单位转换器",
     "笔记应用",
     "图片编辑器",
@@ -148,6 +150,8 @@ const generateInitialProjects = (): Project[] => {
     if (id === 10) status = "completed"
     // 二维码生成器已完成
     if (id === 14) status = "completed"
+    // 5Why根因分析已完成
+    if (id === 15) status = "completed"
 
     return {
       id,

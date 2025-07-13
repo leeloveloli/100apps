@@ -12,6 +12,7 @@ const APP_REGISTRY = {
   'code-converter': () => import('@/apps/code-converter/app'),
   'markdown-editor': () => import('@/apps/markdown-editor/app'),
   'qr-generator': () => import('@/apps/qr-generator/app'),
+  'rootcause-analyzer': () => import('@/apps/rootcause-analyzer/app'),
   // 更多应用将在这里注册...
 } as const
 

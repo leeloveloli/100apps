@@ -23,6 +23,7 @@ const completedAppRoutes: Record<number, string> = {
   3: '/apps/code-converter', // 代码转换器
   9: '/apps/calculator', // 在线计算器
   10: '/apps/markdown-editor', // Markdown编辑器
+  14: '/apps/qr-generator', // 二维码生成器
 }
 
 // 生成初始项目数据的函数
@@ -145,6 +146,8 @@ const generateInitialProjects = (): Project[] => {
     if (id === 3) status = "completed"
     // Markdown编辑器已完成
     if (id === 10) status = "completed"
+    // 二维码生成器已完成
+    if (id === 14) status = "completed"
 
     return {
       id,

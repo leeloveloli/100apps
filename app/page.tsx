@@ -143,6 +143,8 @@ const generateInitialProjects = (): Project[] => {
     if (id === 9) status = "completed"
     // 代码转换器已完成  
     if (id === 3) status = "completed"
+    // Markdown编辑器已完成
+    if (id === 10) status = "completed"
 
     return {
       id,

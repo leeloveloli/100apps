@@ -28,7 +28,7 @@ const completedAppRoutes: Record<number, string> = {
 }
 
 // 配置版本 - 当有新应用完成时增加此版本号
-const CONFIG_VERSION = "1.5" // 包含5个已完成应用
+const CONFIG_VERSION = "1.5.1" // 包含5个已完成应用 - 强制部署更新
 
 // 生成初始项目数据的函数
 const generateInitialProjects = (): Project[] => {

@@ -65,13 +65,13 @@ const QRGenerator: React.FC<QRGeneratorProps> = ({ type }) => {
   const generateQRData = () => {
     switch (type) {
       case 'url':
-        const url = urlInput.trim();
-        if (!url) return '';
+        const inputUrl = urlInput.trim();
+        if (!inputUrl) return '';
         // 自动添加协议
-        if (!url.startsWith('http://') && !url.startsWith('https://')) {
-          return `https://${url}`;
+        if (!inputUrl.startsWith('http://') && !inputUrl.startsWith('https://')) {
+          return `https://${inputUrl}`;
         }
-        return url;
+        return inputUrl;
       
       case 'text':
         return textInput.trim();

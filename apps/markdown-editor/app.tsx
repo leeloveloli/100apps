@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
+import { markdownEditorConfig } from './config';
 
 // 动态导入防止SSR问题
 const MarkdownEditor = dynamic(() => import('./components/MarkdownEditor'), {
@@ -64,3 +65,5 @@ export default function MarkdownEditorApp() {
     </div>
   );
 }
+
+export { markdownEditorConfig as config };

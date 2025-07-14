@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -62,7 +62,7 @@ const QRGenerator: React.FC<QRGeneratorProps> = ({ type }) => {
   }, []);
 
   // 根据类型生成 QR 码数据
-  const generateQRData = () => {
+  const generateQRData = useCallback(() => {
     switch (type) {
       case 'url':
         const inputUrl = urlInput.trim();
@@ -78,7 +78,10 @@ const QRGenerator: React.FC<QRGeneratorProps> = ({ type }) => {
       
       case 'contact':
         const { name, phone, email, organization, url } = contactData;
-        if (!name && !phone && !email) return '';
+        // 更明确地检查核心字段是否为空
+        if (!name.trim() && !phone.trim() && !email.trim()) {
+          return '';
+        }
         
         // 生成 vCard 格式
         let vcard = 'BEGIN:VCARD\nVERSION:3.0\n';
@@ -93,7 +96,7 @@ const QRGenerator: React.FC<QRGeneratorProps> = ({ type }) => {
       default:
         return '';
     }
-  };
+  }, [type, urlInput, textInput, contactData]);
 
   // 生成二维码
   useEffect(() => {
@@ -141,7 +144,7 @@ const QRGenerator: React.FC<QRGeneratorProps> = ({ type }) => {
       console.error('QR生成错误:', error);
       toast.error('二维码生成失败');
     }
-  }, [isLibraryLoaded, urlInput, textInput, contactData, type]);
+  }, [isLibraryLoaded, generateQRData]);
 
   const loadScript = (src: string): Promise<void> => {
     return new Promise((resolve, reject) => {

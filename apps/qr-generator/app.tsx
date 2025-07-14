@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import QRGenerator from './components/QRGenerator';
+import { qrGeneratorConfig } from './config';
 
 export default function QRCodeGeneratorApp() {
   const [activeTab, setActiveTab] = useState('url');
@@ -72,3 +73,5 @@ export default function QRCodeGeneratorApp() {
     </div>
   );
 }
+
+export { qrGeneratorConfig as config };

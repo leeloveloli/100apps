@@ -9,6 +9,7 @@ import ProblemInput from './components/ProblemInput';
 import AnalysisFlow from './components/AnalysisFlow';
 import AnalysisTree from './components/AnalysisTree';
 import ResultsPanel from './components/ResultsPanel';
+import { rootcauseAnalyzerConfig } from './config';
 
 interface AnalysisNode {
   id: string;
@@ -212,3 +213,5 @@ export default function RootCauseAnalyzerApp() {
     </div>
   );
 }
+
+export { rootcauseAnalyzerConfig as config };
